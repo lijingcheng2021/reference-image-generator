@@ -1,0 +1,29 @@
+{
+  "reference": {
+    "analysis": {
+      "devices": [
+        "黄色挖掘机，正在挖掘土方",
+        "红色挖掘机，正在挖掘土方",
+        "绿色挖掘机，正在挖掘土方",
+        "黄色挖掘机，停放在工地边缘"
+      ],
+      "personnel": [
+        "工人穿着反光背心，正在指挥挖掘机作业",
+        "工人穿着反光背心，正在观察挖掘情况",
+        "工人穿着反光背心，正在检查工地安全"
+      ]
+    },
+    "image_path": "/data1/ljc/code/application-data-generation/data/images/v0_100/f24bc8bf0952ebaf449e89dca952d68c.jpg"
+  },
+  "test": {
+    "analysis": {
+      "devices": [
+        "黄色和红色相间的围栏",
+        "带有警示标志的标志牌",
+        "带有黑色和黄色条纹的安全屏障"
+      ],
+      "personnel": []
+    },
+    "image_path": "/data1/ljc/code/application-data-generation/data/images/v0_100/ab5f9d0422837b37b57ce935c1e579ae.jpeg"
+  }
+}

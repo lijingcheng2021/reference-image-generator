@@ -1,0 +1,30 @@
+{
+  "reference": {
+    "analysis": {
+      "devices": [
+        "带有伸缩臂的起重机，颜色为红黑相间，臂长且伸展到前方。",
+        "蓝色的集装箱，放置在黄色的支架上。",
+        "白色卡车，车头有红色和黄色的机械臂。",
+        "黄色的施工机械，停放在卡车旁边。"
+      ],
+      "personnel": [
+        "一名穿着黑色上衣和灰色裤子的人员，站在蓝色集装箱附近，似乎在进行操作。",
+        "一名穿着浅色上衣和深色裤子的人员，站在起重机旁边，可能在指挥或观察操作。"
+      ]
+    },
+    "image_path": "/data1/ljc/code/application-data-generation/data/images/v0_100/e8dc69466d1dce5577434e431d6fd1dc.jpeg"
+  },
+  "test": {
+    "analysis": {
+      "devices": [
+        "黄色移动式起重机，臂架伸展，带有多个吊钩",
+        "红色重型平板运输车，有多组轮轴，正在装载大型设备",
+        "大型工业设备，带有金属框架和多个连接点"
+      ],
+      "personnel": [
+        "一名穿着高可见度反光衣、戴着安全帽的工人，站在起重机和运输车之间，可能在指挥或监督作业"
+      ]
+    },
+    "image_path": "/data1/ljc/code/application-data-generation/data/images/v0_100/ce6fb296f9ad42d5bb66072b568bf308.jpg"
+  }
+}
