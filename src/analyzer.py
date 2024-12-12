@@ -98,7 +98,7 @@ class ImageAnalyzer:
                 top_p=0.7
             )
             
-            return response.choices[0].message.content.strip()
+            return json_repair.loads(response.choices[0].message.content.strip())
         except Exception as e:
             print(f"生成场景描述失败: {str(e)}")
             return "场景描述生成失败"
@@ -145,16 +145,14 @@ class ImageAnalyzer:
         """使用模型判断两张图片是否适合配对"""
         prompt = f"""请分析这两张图片是否适合作为参照图对进行配对：
 
-                参考图信息：
-                {json.dumps(ref_info, ensure_ascii=False, indent=2)}
+                图1信息：
+                {json.dumps(ref_info['annotation']['objects'], ensure_ascii=False, indent=2)}
 
-                测试图信息：
-                {json.dumps(test_info, ensure_ascii=False, indent=2)}
+                图2信息：
+                {json.dumps(test_info['annotation']['objects'], ensure_ascii=False, indent=2)}
 
                 配对原则：
-                1. 两张图片应该包含相似的主要物体或场景
-                2. 两张图片之间应该存在有意义的对比点
-                3. 两张图片的内容应该具有关联性
+                1. 两张图片应该包含相似的主要物体
 
                 请直接返回 "是" 或 "否"，表示是否适合配对。"""
         
@@ -178,18 +176,16 @@ class ImageAnalyzer:
     def _generate_qa_pair(self, ref_name: str, test_name: str, 
                          ref_info: Dict, test_info: Dict) -> Dict:
         """生成问答对"""
-        prompt = f"""基于以下两张工地场景图片的分析信息，生成一个专业的问答对：
+        prompt = f"""基于以下两张图片的分析信息，生成一个问答对：
 
-                参考图信息：
-                {json.dumps(ref_info, ensure_ascii=False, indent=2)}
+                图1信息：
+                {json.dumps(ref_info["description"], ensure_ascii=False, indent=2)}
 
-                测试图信息：
-                {json.dumps(test_info, ensure_ascii=False, indent=2)}
+                图2信息：
+                {json.dumps(test_info["description"], ensure_ascii=False, indent=2)}
 
                 请生成一个问答对，要求：
-                1. 问题应该从参考图的场景出发，询问测试图的相关情况
-                2. 回答应该详细对比两张图片中物体的异同
-                3. 回答要突出重点，使用专业的描述方式
+                对比图1和图2的信息，对图2进行提问，然后对应回答问题
 
                 请以下面的JSON格式返回：
                 {{

@@ -70,47 +70,60 @@ def main():
 def generate_multimodal_data(pairs, image_infos, raw_dir, output_file, client):
     """生成多模态训练数据"""
     with open(output_file, 'w', encoding='utf-8') as f:
-        for i, (ref_name, test_name) in enumerate(pairs):
+        for i, pair_dict in enumerate(pairs):
+            # 从字典中获取参考图和测试图的名称
+            ref_name = pair_dict['reference']
+            test_name = pair_dict['test']
+            
             # 获取两张图片的分析信息
             ref_info = image_infos[ref_name]
             test_info = image_infos[test_name]
             
-            # 构建提示词，包含两张图片的详细分析信息
-            prompt = f"""基于以下两张工地场景图片的分析信息，生成一个专业的问答对：
+            # 如果已经有生成好的问答对，直接使用
+            if 'qa_pair' in pair_dict:
+                qa_pair = pair_dict['qa_pair']
+            else:
+                # 构建提示词，包含两张图片的详细分析信息
+                prompt = f"""基于以下两张工地场景图片的分析信息，生成一个专业的问答对：
 
-                    参考图信息：
-                    {json.dumps(ref_info, ensure_ascii=False, indent=2)}
+                        参考图信息：
+                        {json.dumps(ref_info, ensure_ascii=False, indent=2)}
 
-                    测试图信息：
-                    {json.dumps(test_info, ensure_ascii=False, indent=2)}
+                        测试图信息：
+                        {json.dumps(test_info, ensure_ascii=False, indent=2)}
 
-                    请生成一个问答对，要求：
-                    1. 问题应该从参考图的场景出发，询问测试图的相关情况
-                    2. 回答应该详细对比两张图片中物体的异同
-                    3. 回答要突出重点，使用专业的描述方式
+                        请生成一个问答对，要求：
+                        1. 问题应该从参考图的场景出发，询问测试图的相关情况
+                        2. 回答应该详细对比两张图片中物体的异同
+                        3. 回答要突出重点，使用专业的描述方式
 
-                    请以下面的JSON格式返回：
-                    {{
-                        "question": "您的问题",
-                        "answer": "您的回答"
-                    }}"""
-            
-            # 调用模型生成问答对
-            response = client.client.chat.completions.create(
-                model=client.model,
-                messages=[{
-                    'role': 'user',
-                    'content': [{
-                        'type': 'text',
-                        'text': prompt,
+                        请以下面的JSON格式返回：
+                        {{
+                            "question": "您的问题",
+                            "answer": "您的回答"
+                        }}"""
+                
+                # 调用模型生成问答对
+                response = client.client.chat.completions.create(
+                    model=client.model,
+                    messages=[{
+                        'role': 'user',
+                        'content': [{
+                            'type': 'text',
+                            'text': prompt,
+                        }],
                     }],
-                }],
-                temperature=0.8,
-                top_p=0.8
-            )
-            
+                    temperature=0.8,
+                    top_p=0.8
+                )
+                
+                try:
+                    qa_pair = json.loads(response.choices[0].message.content)
+                except json.JSONDecodeError as e:
+                    print(f"解析问答对失败: {str(e)}")
+                    continue
+
             try:
-                qa_pair = json.loads(response.choices[0].message.content)
                 # 构建完整的数据条目
                 data_item = {
                     "id": f"pair_{i}",
@@ -126,8 +139,8 @@ def generate_multimodal_data(pairs, image_infos, raw_dir, output_file, client):
                 # 写入JSONL文件
                 f.write(json.dumps(data_item, ensure_ascii=False) + '\n')
                 
-            except json.JSONDecodeError as e:
-                print(f"解析问答对失败: {str(e)}")
+            except Exception as e:
+                print(f"生成数据条目失败: {str(e)}")
                 continue
 
 def _generate_comparison_text(ref_info, test_info):
