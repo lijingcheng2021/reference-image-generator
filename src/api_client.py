@@ -59,37 +59,31 @@ class ModelClient:
             return base64.b64encode(image_file.read()).decode("utf-8")
             
     def _create_matching_prompt(self, image_infos: Dict[str, Dict]) -> str:
-        """创建配对提示语
-        Args:
-            image_infos: 包含图片分析结果的字典，格式为 {image_name: {"analysis": {"devices": [...], "personnel": [...]}}
-        """
+        """创建配对提示语"""
         info_list = []
         for img_name, info in image_infos.items():
-            analysis = info.get('analysis', {})
-            devices = analysis.get('devices', [])
-            personnel = analysis.get('personnel', [])
-            info_text = f"图片名称：{img_name}\n设备：{', '.join(devices)}\n人员：{', '.join(personnel)}"
+            # 从标注数据中获取物体信息
+            objects = info.get('objects', [])  # 这里直接使用标注的物体列表
+            info_text = f"""图片名称：{img_name}
+物体列表：{', '.join(objects)}"""
             info_list.append(info_text)
         
         all_info = "\n\n".join(info_list)
         
-        return f"""分析以下工地场景图片，找出适合作为配对的图片：
+        return f"""分析以下工地场景图片中的物体信息，找出适合作为配对的图片：
                 
                 配对原则：
-                   具备可比性。
-                   比如 图1中有人戴安全帽，图2中有人没戴安全帽
-                   比如 图1中有塔吊，图2中没有塔吊
-                   
-               
+                   1. 包含相同类型的主要物体
+                   2. 物体数量或组合存在差异
+                   3. 优先匹配物体重合度较高的图片
                 
                 图片信息如下：
                 {all_info}
                 
                 请返回配对结果，格式：
-                1. [图1文件名] - [图2文件名]：[配对原因，说明差异]
-                2. [图1文件名] - [图2文件名]：[配对原因，说明差异]
+                1. [图1文件名] - [图2文件名]：[配对原因，说明物体的异同]
+                2. [图1文件名] - [图2文件名]：[配对原因，说明物体的异同]
                 ...
-                
                 """
     
     def _parse_matching_response(self, response: str) -> List[tuple]:
@@ -110,29 +104,37 @@ class ModelClient:
         
         return pairs
     
-    def analyze_image(self, image_data: bytes, image_path: str = None) -> Dict:
+    def analyze_image(self, image_data: bytes, image_path: str = None, annotation: Dict = None) -> Dict:
         """分析单张图片
         Args:
             image_data: 图片二进制数据
             image_path: 图片路径
+            annotation: 图片的标注数据，包含 objects 和 anomaly
+        Returns:
+            Dict: 包含目标物体和异常点的分析结果
         """
-        structured_prompt = """请分析图片中的设备和人员情况，并以下面的JSON格式返回：
-                                1. **devices** 数组：列出图片中所有可见的设备和机械，并进行简洁的描述，注意设备外观。
-                                2. **personnel** 数组：描述每个人员的着装和行为，特别注意安全防护装备（如安全帽、安全绳、反光衣等）的佩戴情况。
+        # 根据传入的标注数据动态生成 prompt
+        reference_objects = "、".join(annotation.get("objects", [])) if annotation else "作业人员、设备、安全设施等"
+        
+        structured_prompt = f"""请参考以下标准分析图片中的场景：
 
-                                返回结果格式的要求如下：
-                                - devices：设备和机械的列表，每项为一条简单描述。
-                                - personnel：人员的列表，每项为一条简单描述。
+                            参考标准：
+                                需要重点识别的目标物体：{reference_objects}
+                            
 
-                                注意事项：
-                                1. 仅输出根据图片生成的分析结果，勿包含示例内容。
-                                2. 确保返回的 JSON 严格符合格式规范，以下为参考结构：
+                            请以下面的JSON格式返回分析结果：
+                            {{
+                                "objects": {{
+                                    "物体1": "简要描述其状态和特征",
+                                    "物体2": "简要描述其状态和特征",
+                                    ...
+                                }}
+                            }}
 
-                                ```json
-                                {
-                                    "devices": ["设备或机械描述 1", "设备或机械描述 2", ...],
-                                    "personnel": ["人员描述 1", "人员描述 2", ...]
-                                }"""
+                            注意：
+                            - objects中需要包含上述提到的每个主要目标物体
+                            - 对每个物体的描述应该简洁明了，包含其关键特征和状态
+                            - 确保返回格式严格符合JSON规范"""
         
         # 发送请求获取结构化输出
         structured_response = self.client.chat.completions.create(
@@ -160,7 +162,9 @@ class ModelClient:
             try:
                 result = json_repair.loads(result)
             except json.JSONDecodeError:
-                result = {"devices": [], "personnel": []}
+                result = {
+                    "objects": []
+                }
         
         # 构建标准的返回格式
         final_result = {
